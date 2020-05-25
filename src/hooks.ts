@@ -42,10 +42,14 @@ export async function purgeGroup(client, group: string, prefix: string = 'frc_')
 
     function scan() {
         client.scan(cursor, 'MATCH', `${prefix}${group}*`, 'COUNT', '1000', function (err, reply) {
-          if (err) return reject(err);
-          if (!Array.isArray(reply[1]) || !reply[1][0]) return resolve();
-
           cursor = reply[0];
+          if (err) return reject(err);
+          if (!Array.isArray(reply[1]) || !reply[1][0]) {
+            if (cursor != "0")
+              scan();
+            return resolve();
+          }
+
           const keys = reply[1];
           const batchKeys = keys.reduce((a, c) => {
             if (Array.isArray(a[a.length - 1]) && a[a.length - 1].length < 100) {
@@ -66,6 +70,8 @@ export async function purgeGroup(client, group: string, prefix: string = 'frc_')
             if (err) return reject(err);
             return scan();
           });
+          if (cursor != "0")
+            scan();
         });
     }
 
