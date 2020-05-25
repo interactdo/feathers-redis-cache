@@ -87,11 +87,15 @@ function purgeGroup(client, group, prefix) {
                     var cursor = '0';
                     function scan() {
                         client.scan(cursor, 'MATCH', "" + prefix + group + "*", 'COUNT', '1000', function (err, reply) {
+                            cursor = reply[0];
                             if (err)
                                 return reject(err);
-                            if (!Array.isArray(reply[1]) || !reply[1][0])
+                            if (!Array.isArray(reply[1]) || !reply[1][0]) {
+                                // Added continue search missing before when cursor non-zero
+                                if (cursor != 0)
+                                    scan();
                                 return resolve();
-                            cursor = reply[0];
+                            }
                             var keys = reply[1];
                             var batchKeys = keys.reduce(function (a, c) {
                                 if (Array.isArray(a[a.length - 1]) && a[a.length - 1].length < 100) {
@@ -114,6 +118,9 @@ function purgeGroup(client, group, prefix) {
                                     return reject(err);
                                 return scan();
                             });
+                            // Added continue search missing before when cursor non-zero
+                            if (cursor != 0)
+                                scan();
                         });
                     }
                     return scan();
